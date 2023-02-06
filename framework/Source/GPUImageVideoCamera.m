@@ -56,6 +56,7 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
 @synthesize delegate = _delegate;
 @synthesize horizontallyMirrorFrontFacingCamera = _horizontallyMirrorFrontFacingCamera, horizontallyMirrorRearFacingCamera = _horizontallyMirrorRearFacingCamera;
 @synthesize frameRate = _frameRate;
+@synthesize ultraWideCamera = _ultraWideCamera;
 
 #pragma mark -
 #pragma mark Initialization and teardown
@@ -379,16 +380,37 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
     {
         currentCameraPosition = AVCaptureDevicePositionBack;
     }
-    
+    _ultraWideCamera = NO;
     AVCaptureDevice *backFacingCamera = nil;
-    NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
-	for (AVCaptureDevice *device in devices) 
-	{
-		if ([device position] == currentCameraPosition)
-		{
-			backFacingCamera = device;
-		}
-	}
+    if(currentCameraPosition == AVCaptureDevicePositionBack){
+        // 创建Camera镜头组，实现镜头自动变焦
+        NSArray<AVCaptureDeviceType> * deviceTypeArr = @[AVCaptureDeviceTypeBuiltInWideAngleCamera,AVCaptureDeviceTypeBuiltInTripleCamera,AVCaptureDeviceTypeBuiltInDualWideCamera,AVCaptureDeviceTypeBuiltInTrueDepthCamera,AVCaptureDeviceTypeBuiltInUltraWideCamera,AVCaptureDeviceTypeBuiltInTelephotoCamera,AVCaptureDeviceTypeBuiltInDualCamera,AVCaptureDeviceTypeBuiltInMicrophone];
+        
+        AVCaptureDeviceDiscoverySession * myDiscoverySesion = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:deviceTypeArr mediaType:AVMediaTypeVideo position:AVCaptureDevicePositionBack];
+         
+        for (AVCaptureDevice *item in myDiscoverySesion.devices) {
+            // 找到对应的摄像头
+            if ([item position] == AVCaptureDevicePositionBack && (item.deviceType == AVCaptureDeviceTypeBuiltInTripleCamera || item.deviceType == AVCaptureDeviceTypeBuiltInDualWideCamera)) {
+                backFacingCamera = item;
+                _ultraWideCamera = YES;
+                break;
+            }
+        }
+        //        NSArray *arrFactors = backFacingCamera.virtualDeviceSwitchOverVideoZoomFactors;
+        //        if(arrFactors && arrFactors.count){
+        //
+        //        }
+    }else{
+        NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+        for (AVCaptureDevice *device in devices)
+        {
+            if ([device position] == currentCameraPosition)
+            {
+                backFacingCamera = device;
+            }
+        }
+    }
+    
     newVideoInput = [[AVCaptureDeviceInput alloc] initWithDevice:backFacingCamera error:&error];
     
     if (newVideoInput != nil)
@@ -420,15 +442,15 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
 
 + (BOOL)isBackFacingCameraPresent;
 {
-	NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
-	
-	for (AVCaptureDevice *device in devices)
-	{
-		if ([device position] == AVCaptureDevicePositionBack)
-			return YES;
-	}
-	
-	return NO;
+    NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+    
+    for (AVCaptureDevice *device in devices)
+    {
+        if ([device position] == AVCaptureDevicePositionBack)
+            return YES;
+    }
+    
+    return NO;
 }
 
 - (BOOL)isBackFacingCameraPresent

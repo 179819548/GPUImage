@@ -76,6 +76,8 @@ void setColorConversion709( GLfloat conversionMatrix[9] );
 
 @property(nonatomic, assign) id<GPUImageVideoCameraDelegate> delegate;
 
+@property(nonatomic, assign) BOOL ultraWideCamera;
+
 /// @name Initialization and teardown
 
 /** Begin a capture session
