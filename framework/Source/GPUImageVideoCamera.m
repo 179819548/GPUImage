@@ -387,14 +387,21 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
         NSArray<AVCaptureDeviceType> * deviceTypeArr = @[AVCaptureDeviceTypeBuiltInWideAngleCamera,AVCaptureDeviceTypeBuiltInTripleCamera,AVCaptureDeviceTypeBuiltInDualWideCamera,AVCaptureDeviceTypeBuiltInTrueDepthCamera,AVCaptureDeviceTypeBuiltInUltraWideCamera,AVCaptureDeviceTypeBuiltInTelephotoCamera,AVCaptureDeviceTypeBuiltInDualCamera,AVCaptureDeviceTypeBuiltInMicrophone];
         
         AVCaptureDeviceDiscoverySession * myDiscoverySesion = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:deviceTypeArr mediaType:AVMediaTypeVideo position:AVCaptureDevicePositionBack];
-         
-        for (AVCaptureDevice *item in myDiscoverySesion.devices) {
+        AVCaptureDevice *tempBackFacingCamera = nil;
+        for (AVCaptureDevice *device in myDiscoverySesion.devices) {
             // 找到对应的摄像头
-            if ([item position] == AVCaptureDevicePositionBack && (item.deviceType == AVCaptureDeviceTypeBuiltInTripleCamera || item.deviceType == AVCaptureDeviceTypeBuiltInDualWideCamera)) {
-                backFacingCamera = item;
+            if ([device position] == currentCameraPosition)
+            {
+                tempBackFacingCamera = device;
+            }
+            if ([device position] == AVCaptureDevicePositionBack && (device.deviceType == AVCaptureDeviceTypeBuiltInTripleCamera || device.deviceType == AVCaptureDeviceTypeBuiltInDualWideCamera)) {
+                backFacingCamera = device;
                 _ultraWideCamera = YES;
                 break;
             }
+        }
+        if(!backFacingCamera){
+            backFacingCamera = tempBackFacingCamera;
         }
         //        NSArray *arrFactors = backFacingCamera.virtualDeviceSwitchOverVideoZoomFactors;
         //        if(arrFactors && arrFactors.count){
