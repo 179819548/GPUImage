@@ -400,7 +400,7 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
                 break;
             }
         }
-        if(backFacingCamera != nil){
+        if(tempBackFacingCamera != nil){
             backFacingCamera = tempBackFacingCamera;
             if(tempBackFacingCamera == nil){
                 NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
