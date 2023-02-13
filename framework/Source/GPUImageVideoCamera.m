@@ -400,16 +400,15 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
                 break;
             }
         }
-        if(tempBackFacingCamera != nil){
+        if(tempBackFacingCamera){
             backFacingCamera = tempBackFacingCamera;
-            if(tempBackFacingCamera == nil){
-                NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
-                for (AVCaptureDevice *device in devices)
+        }else{
+            NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+            for (AVCaptureDevice *device in devices)
+            {
+                if ([device position] == AVCaptureDevicePositionBack)
                 {
-                    if ([device position] == AVCaptureDevicePositionBack)
-                    {
-                        backFacingCamera = device;
-                    }
+                    backFacingCamera = device;
                 }
             }
         }
