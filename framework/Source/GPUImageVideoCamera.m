@@ -400,8 +400,18 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
                 break;
             }
         }
-        if(!backFacingCamera){
+        if(backFacingCamera != nil){
             backFacingCamera = tempBackFacingCamera;
+            if(tempBackFacingCamera == nil){
+                NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+                for (AVCaptureDevice *device in devices)
+                {
+                    if ([device position] == AVCaptureDevicePositionBack)
+                    {
+                        backFacingCamera = device;
+                    }
+                }
+            }
         }
         //        NSArray *arrFactors = backFacingCamera.virtualDeviceSwitchOverVideoZoomFactors;
         //        if(arrFactors && arrFactors.count){
