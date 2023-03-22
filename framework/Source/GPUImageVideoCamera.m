@@ -57,7 +57,6 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
 @synthesize horizontallyMirrorFrontFacingCamera = _horizontallyMirrorFrontFacingCamera, horizontallyMirrorRearFacingCamera = _horizontallyMirrorRearFacingCamera;
 @synthesize frameRate = _frameRate;
 @synthesize ultraWideCamera = _ultraWideCamera;
-@synthesize isRotateCamera = _isRotateCamera;
 
 #pragma mark -
 #pragma mark Initialization and teardown
