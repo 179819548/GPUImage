@@ -57,6 +57,7 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
 @synthesize horizontallyMirrorFrontFacingCamera = _horizontallyMirrorFrontFacingCamera, horizontallyMirrorRearFacingCamera = _horizontallyMirrorRearFacingCamera;
 @synthesize frameRate = _frameRate;
 @synthesize ultraWideCamera = _ultraWideCamera;
+@synthesize isRotateCamera = _isRotateCamera;
 
 #pragma mark -
 #pragma mark Initialization and teardown
@@ -445,7 +446,8 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
         {
             [_captureSession addInput:videoInput];
         }
-        //captureSession.sessionPreset = oriPreset;
+        
+        NSKeyValueObservingOptions options = NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld | NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionPrior;
         [_captureSession commitConfiguration];
     }
     
@@ -655,6 +657,7 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
     
     CFAbsoluteTime startTime = CFAbsoluteTimeGetCurrent();
     CVImageBufferRef cameraFrame = CMSampleBufferGetImageBuffer(sampleBuffer);
+    
     int bufferWidth = (int) CVPixelBufferGetWidth(cameraFrame);
     int bufferHeight = (int) CVPixelBufferGetHeight(cameraFrame);
     CFTypeRef colorAttachments = CVBufferGetAttachment(cameraFrame, kCVImageBufferYCbCrMatrixKey, NULL);
@@ -925,7 +928,13 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
             return;
         }
         
+        if ([self.delegate respondsToSelector:@selector(willOutputImageBufferRef:)])
+        {
+            [self.delegate willOutputImageBufferRef:sampleBuffer];
+        }
+        
         CFRetain(sampleBuffer);
+        
         runAsynchronouslyOnVideoProcessingQueue(^{
             //Feature Detection Hook.
             if (self.delegate)
