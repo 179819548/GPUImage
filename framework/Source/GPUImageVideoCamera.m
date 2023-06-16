@@ -256,7 +256,7 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
 
 - (BOOL)addAudioInputsAndOutputs
 {
-    if (audioOutput)
+    if (audioOutput || self.isPhoneCall)
         return NO;
     
     [_captureSession beginConfiguration];

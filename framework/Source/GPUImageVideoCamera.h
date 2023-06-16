@@ -43,6 +43,7 @@ void setColorConversion709( GLfloat conversionMatrix[9] );
 
     __unsafe_unretained id<GPUImageVideoCameraDelegate> _delegate;
 }
+@property (nonatomic，assign) bool isPhoneCall;
 
 /// Whether or not the underlying AVCaptureSession is running
 @property(readonly, nonatomic) BOOL isRunning;
