@@ -897,7 +897,7 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString = SHADER_STRING
 
 - (void)setHasAudioTrack:(BOOL)newValue audioSettings:(NSDictionary *)audioOutputSettings;
 {
-    _hasAudioTrack = newValue;
+        _hasAudioTrack = newValue;
     
     if (_hasAudioTrack)
     {

@@ -62,6 +62,9 @@ void reportAvailableMemoryForGPUImage(NSString *tag);
 
 /// @name Managing targets
 - (void)setInputFramebufferForTarget:(id<GPUImageInput>)target atIndex:(NSInteger)inputTextureIndex;
+
+- (void)setAudioEncodingTarget:(GPUImageMovieWriter *)newValue audioSettings:(NSDictionary *)audioOutputSettings;
+
 - (GPUImageFramebuffer *)framebufferForOutput;
 - (void)removeOutputFramebuffer;
 - (void)notifyTargetsAboutNewOutputTexture;

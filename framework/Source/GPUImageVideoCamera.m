@@ -966,6 +966,21 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
     [super setAudioEncodingTarget:newValue];
 }
 
+- (void)setAudioEncodingTarget:(GPUImageMovieWriter *)newValue audioSettings:(NSDictionary *)audioOutputSettings;
+{
+    if (newValue) {
+        /* Add audio inputs and outputs, if necessary */
+        addedAudioInputsDueToEncodingTarget |= [self addAudioInputsAndOutputs];
+    } else if (addedAudioInputsDueToEncodingTarget) {
+        /* Remove audio inputs and outputs, if they were added by previously setting the audio encoding target */
+        [self removeAudioInputsAndOutputs];
+        addedAudioInputsDueToEncodingTarget = NO;
+    }
+    
+    [super setAudioEncodingTarget:newValue audioSettings:audioOutputSettings];
+}
+
+
 - (void)updateOrientationSendToTargets;
 {
     runSynchronouslyOnVideoProcessingQueue(^{

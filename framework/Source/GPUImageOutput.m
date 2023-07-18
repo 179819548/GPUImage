@@ -418,6 +418,16 @@ void reportAvailableMemoryForGPUImage(NSString *tag)
     }
 }
 
+- (void)setAudioEncodingTarget:(GPUImageMovieWriter *)newValue audioSettings:(NSDictionary *)audioOutputSettings;
+{    
+    _audioEncodingTarget = newValue;
+    if( ! _audioEncodingTarget.hasAudioTrack )
+    {
+        [_audioEncodingTarget setHasAudioTrack:YES audioSettings:audioOutputSettings];
+    }
+}
+
+
 -(void)setOutputTextureOptions:(GPUTextureOptions)outputTextureOptions
 {
     _outputTextureOptions = outputTextureOptions;
