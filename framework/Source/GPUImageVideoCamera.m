@@ -47,9 +47,11 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
 @end
 
 @implementation GPUImageVideoCamera
-
 @synthesize captureSessionPreset = _captureSessionPreset;
 @synthesize captureSession = _captureSession;
+@synthesize audioSession = _audioSession;
+@synthesize backFacingCamera = _backFacingCamera;
+@synthesize frontFacingCamera = _frontFacingCamera;
 @synthesize inputCamera = _inputCamera;
 @synthesize runBenchmark = _runBenchmark;
 @synthesize outputImageOrientation = _outputImageOrientation;
@@ -92,29 +94,44 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
     _preferredConversion = kColorConversion709;
     
 	// Grab the back-facing or front-facing camera
+    
+    [self cameraPositionInit];
+    
     _inputCamera = nil;
-	NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
-	for (AVCaptureDevice *device in devices) 
-	{
-		if ([device position] == cameraPosition)
-		{
-			_inputCamera = device;
-		}
-	}
+    if (cameraPosition == AVCaptureDevicePositionBack){
+        _inputCamera = _backFacingCamera;
+    }else if (cameraPosition == AVCaptureDevicePositionFront){
+        _inputCamera = _frontFacingCamera;
+    }
+//    _inputCamera = nil;
+//	NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+//	for (AVCaptureDevice *device in devices)
+//	{
+//		if ([device position] == cameraPosition)
+//		{
+//			_inputCamera = device;
+//		}
+//	}
     
     if (!_inputCamera) {
         return nil;
     }
     
+    videoInput = nil;
+    if (cameraPosition == AVCaptureDevicePositionBack){
+        videoInput = backVideoInput;
+    }else if (cameraPosition == AVCaptureDevicePositionFront){
+        videoInput = frontVideoInput;
+    }
+    
 	// Create the capture session
+    _audioSession = [[AVCaptureSession alloc] init];
+    
 	_captureSession = [[AVCaptureSession alloc] init];
 	
     [_captureSession beginConfiguration];
     
-	// Add the video input	
-	NSError *error = nil;
-	videoInput = [[AVCaptureDeviceInput alloc] initWithDevice:_inputCamera error:&error];
-	if ([_captureSession canAddInput:videoInput]) 
+	if ([_captureSession canAddInput:videoInput])
 	{
 		[_captureSession addInput:videoInput];
 	}
@@ -232,6 +249,64 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
 	return self;
 }
 
+
+- (void)cameraPositionInit{
+    NSError *error;
+    _ultraWideCamera = NO;
+    _backFacingCamera = nil;
+    _frontFacingCamera = nil;
+
+    // 创建Camera镜头组，实现镜头自动变焦
+    NSArray<AVCaptureDeviceType> * deviceTypeArr = @[AVCaptureDeviceTypeBuiltInWideAngleCamera,AVCaptureDeviceTypeBuiltInTripleCamera,AVCaptureDeviceTypeBuiltInDualWideCamera,AVCaptureDeviceTypeBuiltInTrueDepthCamera,AVCaptureDeviceTypeBuiltInUltraWideCamera,AVCaptureDeviceTypeBuiltInTelephotoCamera,AVCaptureDeviceTypeBuiltInDualCamera,AVCaptureDeviceTypeBuiltInMicrophone];
+    
+    AVCaptureDeviceDiscoverySession * myDiscoverySesion = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:deviceTypeArr mediaType:AVMediaTypeVideo position:AVCaptureDevicePositionBack];
+    AVCaptureDevice *tempBackFacingCamera = nil;
+    for (AVCaptureDevice *device in myDiscoverySesion.devices) {
+        // 找到对应的摄像头
+        if ([device position] == AVCaptureDevicePositionBack)
+        {
+            tempBackFacingCamera = device;
+        }
+        if ([device position] == AVCaptureDevicePositionBack && (device.deviceType == AVCaptureDeviceTypeBuiltInTripleCamera || device.deviceType == AVCaptureDeviceTypeBuiltInDualWideCamera)) {
+            _backFacingCamera = device;
+            _ultraWideCamera = YES;
+            break;
+        }
+    }
+    if(_backFacingCamera == nil){
+        if(tempBackFacingCamera){
+            _backFacingCamera = tempBackFacingCamera;
+        }else{
+            NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+            for (AVCaptureDevice *device in devices)
+            {
+                if ([device position] == AVCaptureDevicePositionBack)
+                {
+                    _backFacingCamera = device;
+                }
+            }
+        }
+    }
+    
+    NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+    for (AVCaptureDevice *device in devices)
+    {
+        if ([device position] == AVCaptureDevicePositionFront)
+        {
+            _frontFacingCamera = device;
+        }
+    }
+    
+    NSError *error1 = nil;
+    if(_backFacingCamera) {
+        backVideoInput = [[AVCaptureDeviceInput alloc] initWithDevice:_backFacingCamera error:&error1];
+    }
+    NSError *error2 = nil;
+    if(_frontFacingCamera) {
+        frontVideoInput = [[AVCaptureDeviceInput alloc] initWithDevice:_frontFacingCamera error:&error2];
+    }
+}
+
 - (GPUImageFramebuffer *)framebufferForOutput;
 {
     return outputFramebuffer;
@@ -259,19 +334,19 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
     if (audioOutput || self.isPhoneCall)
         return NO;
     
-    [_captureSession beginConfiguration];
+    [_audioSession beginConfiguration];
     
     _microphone = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeAudio];
     audioInput = [AVCaptureDeviceInput deviceInputWithDevice:_microphone error:nil];
-    if ([_captureSession canAddInput:audioInput])
+    if ([_audioSession canAddInput:audioInput])
     {
-        [_captureSession addInput:audioInput];
+        [_audioSession addInput:audioInput];
     }
     audioOutput = [[AVCaptureAudioDataOutput alloc] init];
     
-    if ([_captureSession canAddOutput:audioOutput])
+    if ([_audioSession canAddOutput:audioOutput])
     {
-        [_captureSession addOutput:audioOutput];
+        [_audioSession addOutput:audioOutput];
     }
     else
     {
@@ -279,7 +354,7 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
     }
     [audioOutput setSampleBufferDelegate:self queue:audioProcessingQueue];
     
-    [_captureSession commitConfiguration];
+    [_audioSession commitConfiguration];
     return YES;
 }
 
@@ -288,13 +363,13 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
     if (!audioOutput)
         return NO;
     
-    [_captureSession beginConfiguration];
-    [_captureSession removeInput:audioInput];
-    [_captureSession removeOutput:audioOutput];
+    [_audioSession beginConfiguration];
+    [_audioSession removeInput:audioInput];
+    [_audioSession removeOutput:audioOutput];
     audioInput = nil;
     audioOutput = nil;
     _microphone = nil;
-    [_captureSession commitConfiguration];
+    [_audioSession commitConfiguration];
     return YES;
 }
 
@@ -309,11 +384,13 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
     }
     if (_microphone != nil)
     {
-        [_captureSession removeInput:audioInput];
-        [_captureSession removeOutput:audioOutput];
+        [_audioSession beginConfiguration];
+        [_audioSession removeInput:audioInput];
+        [_audioSession removeOutput:audioOutput];
         audioInput = nil;
         audioOutput = nil;
         _microphone = nil;
+        [_audioSession commitConfiguration];
     }
     [_captureSession commitConfiguration];
 }
@@ -343,6 +420,11 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
         startingCaptureTime = [NSDate date];
 		[_captureSession startRunning];
 	};
+    
+    if (![_audioSession isRunning])
+    {
+        [_audioSession startRunning];
+    };
 }
 
 - (void)stopCameraCapture;
@@ -350,6 +432,10 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
     if ([_captureSession isRunning])
     {
         [_captureSession stopRunning];
+    }
+    if ([_audioSession isRunning])
+    {
+        [_audioSession stopRunning];
     }
 }
 
@@ -365,94 +451,126 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
 
 - (void)rotateCamera
 {
-	if (self.frontFacingCameraPresent == NO)
-		return;
-	
+    if (self.frontFacingCameraPresent == NO)
+        return;
+
     NSError *error;
     AVCaptureDeviceInput *newVideoInput;
     AVCaptureDevicePosition currentCameraPosition = [[videoInput device] position];
-    
-    if (currentCameraPosition == AVCaptureDevicePositionBack)
-    {
-        currentCameraPosition = AVCaptureDevicePositionFront;
+
+    if (currentCameraPosition == AVCaptureDevicePositionBack) {
+        _inputCamera = _frontFacingCamera;
+        newVideoInput = frontVideoInput;
+    }else {
+        _inputCamera = _backFacingCamera;
+        newVideoInput = backVideoInput;
     }
-    else
-    {
-        currentCameraPosition = AVCaptureDevicePositionBack;
-    }
-    _ultraWideCamera = NO;
-    AVCaptureDevice *backFacingCamera = nil;
-    if(currentCameraPosition == AVCaptureDevicePositionBack){
-        // 创建Camera镜头组，实现镜头自动变焦
-        NSArray<AVCaptureDeviceType> * deviceTypeArr = @[AVCaptureDeviceTypeBuiltInWideAngleCamera,AVCaptureDeviceTypeBuiltInTripleCamera,AVCaptureDeviceTypeBuiltInDualWideCamera,AVCaptureDeviceTypeBuiltInTrueDepthCamera,AVCaptureDeviceTypeBuiltInUltraWideCamera,AVCaptureDeviceTypeBuiltInTelephotoCamera,AVCaptureDeviceTypeBuiltInDualCamera,AVCaptureDeviceTypeBuiltInMicrophone];
-        
-        AVCaptureDeviceDiscoverySession * myDiscoverySesion = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:deviceTypeArr mediaType:AVMediaTypeVideo position:AVCaptureDevicePositionBack];
-        AVCaptureDevice *tempBackFacingCamera = nil;
-        for (AVCaptureDevice *device in myDiscoverySesion.devices) {
-            // 找到对应的摄像头
-            if ([device position] == currentCameraPosition)
-            {
-                tempBackFacingCamera = device;
-            }
-            if ([device position] == AVCaptureDevicePositionBack && (device.deviceType == AVCaptureDeviceTypeBuiltInTripleCamera || device.deviceType == AVCaptureDeviceTypeBuiltInDualWideCamera)) {
-                backFacingCamera = device;
-                _ultraWideCamera = YES;
-                break;
-            }
-        }
-        if(backFacingCamera == nil){
-            if(tempBackFacingCamera){
-                backFacingCamera = tempBackFacingCamera;
-            }else{
-                NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
-                for (AVCaptureDevice *device in devices)
-                {
-                    if ([device position] == AVCaptureDevicePositionBack)
-                    {
-                        backFacingCamera = device;
-                    }
-                }
-            }
-        }
-        //        NSArray *arrFactors = backFacingCamera.virtualDeviceSwitchOverVideoZoomFactors;
-        //        if(arrFactors && arrFactors.count){
-        //
-        //        }
-    }else{
-        NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
-        for (AVCaptureDevice *device in devices)
-        {
-            if ([device position] == currentCameraPosition)
-            {
-                backFacingCamera = device;
-            }
-        }
-    }
-    
-    newVideoInput = [[AVCaptureDeviceInput alloc] initWithDevice:backFacingCamera error:&error];
     
     if (newVideoInput != nil)
     {
         [_captureSession beginConfiguration];
-        
         [_captureSession removeInput:videoInput];
-        if ([_captureSession canAddInput:newVideoInput])
-        {
+        if ([_captureSession canAddInput:newVideoInput]) {
             [_captureSession addInput:newVideoInput];
             videoInput = newVideoInput;
-        }
-        else
-        {
+        } else {
             [_captureSession addInput:videoInput];
         }
-        
-        NSKeyValueObservingOptions options = NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld | NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionPrior;
         [_captureSession commitConfiguration];
     }
-    
-    _inputCamera = backFacingCamera;
     [self setOutputImageOrientation:_outputImageOrientation];
 }
+
+//- (void)rotateCamera
+//{
+//	if (self.frontFacingCameraPresent == NO)
+//		return;
+//
+//    NSError *error;
+//    AVCaptureDeviceInput *newVideoInput;
+//    AVCaptureDevicePosition currentCameraPosition = [[videoInput device] position];
+//
+//    if (currentCameraPosition == AVCaptureDevicePositionBack)
+//    {
+//        currentCameraPosition = AVCaptureDevicePositionFront;
+//    }
+//    else
+//    {
+//        currentCameraPosition = AVCaptureDevicePositionBack;
+//    }
+//    _ultraWideCamera = NO;
+//    AVCaptureDevice *backFacingCamera = nil;
+//    if(currentCameraPosition == AVCaptureDevicePositionBack){
+//        // 创建Camera镜头组，实现镜头自动变焦
+//        NSArray<AVCaptureDeviceType> * deviceTypeArr = @[AVCaptureDeviceTypeBuiltInWideAngleCamera,AVCaptureDeviceTypeBuiltInTripleCamera,AVCaptureDeviceTypeBuiltInDualWideCamera,AVCaptureDeviceTypeBuiltInTrueDepthCamera,AVCaptureDeviceTypeBuiltInUltraWideCamera,AVCaptureDeviceTypeBuiltInTelephotoCamera,AVCaptureDeviceTypeBuiltInDualCamera,AVCaptureDeviceTypeBuiltInMicrophone];
+//
+//        AVCaptureDeviceDiscoverySession * myDiscoverySesion = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:deviceTypeArr mediaType:AVMediaTypeVideo position:AVCaptureDevicePositionBack];
+//        AVCaptureDevice *tempBackFacingCamera = nil;
+//        for (AVCaptureDevice *device in myDiscoverySesion.devices) {
+//            // 找到对应的摄像头
+//            if ([device position] == currentCameraPosition)
+//            {
+//                tempBackFacingCamera = device;
+//            }
+//            if ([device position] == AVCaptureDevicePositionBack && (device.deviceType == AVCaptureDeviceTypeBuiltInTripleCamera || device.deviceType == AVCaptureDeviceTypeBuiltInDualWideCamera)) {
+//                backFacingCamera = device;
+//                _ultraWideCamera = YES;
+//                break;
+//            }
+//        }
+//        if(backFacingCamera == nil){
+//            if(tempBackFacingCamera){
+//                backFacingCamera = tempBackFacingCamera;
+//            }else{
+//                NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+//                for (AVCaptureDevice *device in devices)
+//                {
+//                    if ([device position] == AVCaptureDevicePositionBack)
+//                    {
+//                        backFacingCamera = device;
+//                    }
+//                }
+//            }
+//        }
+//        //        NSArray *arrFactors = backFacingCamera.virtualDeviceSwitchOverVideoZoomFactors;
+//        //        if(arrFactors && arrFactors.count){
+//        //
+//        //        }
+//    }else{
+//        NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+//        for (AVCaptureDevice *device in devices)
+//        {
+//            if ([device position] == currentCameraPosition)
+//            {
+//                backFacingCamera = device;
+//            }
+//        }
+//    }
+//
+//    newVideoInput = [[AVCaptureDeviceInput alloc] initWithDevice:backFacingCamera error:&error];
+//
+//    if (newVideoInput != nil)
+//    {
+//        [_captureSession beginConfiguration];
+//
+//        [_captureSession removeInput:videoInput];
+//        if ([_captureSession canAddInput:newVideoInput])
+//        {
+//            [_captureSession addInput:newVideoInput];
+//            videoInput = newVideoInput;
+//        }
+//        else
+//        {
+//            [_captureSession addInput:videoInput];
+//        }
+//
+//        NSKeyValueObservingOptions options = NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld | NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionPrior;
+//        [_captureSession commitConfiguration];
+//    }
+//
+//    _inputCamera = backFacingCamera;
+//    [self setOutputImageOrientation:_outputImageOrientation];
+//}
 
 - (AVCaptureDevicePosition)cameraPosition 
 {

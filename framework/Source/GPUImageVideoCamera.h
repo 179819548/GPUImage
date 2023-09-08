@@ -29,11 +29,16 @@ void setColorConversion709( GLfloat conversionMatrix[9] );
     CGFloat totalFrameTimeDuringCapture;
     
     AVCaptureSession *_captureSession;
+    AVCaptureSession *_audioSession;
+    AVCaptureDevice *_backFacingCamera;
+    AVCaptureDevice *_frontFacingCamera;
     AVCaptureDevice *_inputCamera;
     AVCaptureDevice *_microphone;
+    AVCaptureDeviceInput *backVideoInput;
+    AVCaptureDeviceInput *frontVideoInput;
     AVCaptureDeviceInput *videoInput;
 	AVCaptureVideoDataOutput *videoOutput;
-
+    
     BOOL capturePaused;
     GPUImageRotationMode outputRotation, internalRotation;
     dispatch_semaphore_t frameRenderingSemaphore;
@@ -50,6 +55,8 @@ void setColorConversion709( GLfloat conversionMatrix[9] );
 
 /// The AVCaptureSession used to capture from the camera
 @property(readonly, retain, nonatomic) AVCaptureSession *captureSession;
+
+@property(readonly, retain, nonatomic) AVCaptureSession *audioSession;
 
 /// This enables the capture session preset to be changed on the fly
 @property (readwrite, nonatomic, copy) NSString *captureSessionPreset;
@@ -68,7 +75,7 @@ void setColorConversion709( GLfloat conversionMatrix[9] );
 @property(readwrite, nonatomic) BOOL runBenchmark;
 
 /// Use this property to manage camera settings. Focus point, exposure point, etc.
-@property(readonly) AVCaptureDevice *inputCamera;
+//@property(readonly) AVCaptureDevice *inputCamera;
 
 /// This determines the rotation applied to the output image, based on the source material
 @property(readwrite, nonatomic) UIInterfaceOrientation outputImageOrientation;
@@ -79,6 +86,10 @@ void setColorConversion709( GLfloat conversionMatrix[9] );
 @property(nonatomic, assign) id<GPUImageVideoCameraDelegate> delegate;
 
 @property(nonatomic, assign) BOOL ultraWideCamera;
+
+@property (readonly) AVCaptureDevice *backFacingCamera;
+@property (readonly) AVCaptureDevice *frontFacingCamera;
+@property (readonly) AVCaptureDevice *inputCamera;
 
 /// @name Initialization and teardown
 
