@@ -28,12 +28,15 @@ void setColorConversion709( GLfloat conversionMatrix[9] );
     NSUInteger numberOfFramesCaptured;
     CGFloat totalFrameTimeDuringCapture;
     
-    AVCaptureSession *_captureSession;
+    AVCaptureDevice *_microphone;
     AVCaptureSession *_audioSession;
+    AVCaptureDeviceInput *audioInput;
+    AVCaptureAudioDataOutput *audioOutput;
+
     AVCaptureDevice *_backFacingCamera;
     AVCaptureDevice *_frontFacingCamera;
     AVCaptureDevice *_inputCamera;
-    AVCaptureDevice *_microphone;
+    AVCaptureSession *_captureSession;
     AVCaptureDeviceInput *backVideoInput;
     AVCaptureDeviceInput *frontVideoInput;
     AVCaptureDeviceInput *videoInput;

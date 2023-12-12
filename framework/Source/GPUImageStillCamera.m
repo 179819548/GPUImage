@@ -161,7 +161,7 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
         if(!error){
             filteredPhoto = [finalFilterInChain imageFromCurrentFramebuffer];
         }
-        dispatch_semaphore_signal(frameRenderingSemaphore);
+        dispatch_semaphore_signal(self->frameRenderingSemaphore);
 
         block(filteredPhoto, error);
     }];
